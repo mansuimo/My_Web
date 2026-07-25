@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: shiye-blog-api
+
+server:
+  port: 8080
+
