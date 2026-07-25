@@ -5,67 +5,75 @@ import { articles } from '../data/articles'
 import heroImage from '../assets/images/hero-workspace.jpg'
 
 const featuredArticles = articles.filter((article) => article.featured).slice(0, 3)
-const curtainStage = ref(null)
-const scrollProgress = ref(0)
-let ticking = false
+const now = ref(new Date())
+let clockTimer
 
-const curtainStyle = computed(() => ({
-  '--hero-scale': (1 + scrollProgress.value * 0.08).toFixed(3),
-  '--hero-shift': `${Math.round(scrollProgress.value * -28)}px`,
-  '--hero-brightness': (0.78 - scrollProgress.value * 0.18).toFixed(2),
-  '--copy-shift': `${Math.round(scrollProgress.value * -42)}px`,
-  '--copy-opacity': Math.max(0.18, 1 - scrollProgress.value * 1.05).toFixed(2),
-}))
+const timeLabel = computed(() =>
+  new Intl.DateTimeFormat('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Shanghai',
+  }).format(now.value),
+)
 
-function updateScrollProgress() {
-  if (!curtainStage.value) return
-
-  const stageTop = curtainStage.value.getBoundingClientRect().top
-  const distance = Math.max(window.innerHeight * 0.85, 1)
-  scrollProgress.value = Math.min(1, Math.max(0, -stageTop / distance))
-  ticking = false
+function trackPointer(event) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  event.currentTarget.style.setProperty('--pointer-x', `${event.clientX - rect.left}px`)
+  event.currentTarget.style.setProperty('--pointer-y', `${event.clientY - rect.top}px`)
+  event.currentTarget.style.setProperty('--tilt-x', `${((event.clientY - rect.top) / rect.height - 0.5) * -4}deg`)
+  event.currentTarget.style.setProperty('--tilt-y', `${((event.clientX - rect.left) / rect.width - 0.5) * 4}deg`)
 }
 
-function handleScroll() {
-  if (ticking) return
-  ticking = true
-  window.requestAnimationFrame(updateScrollProgress)
+function resetPointer(event) {
+  event.currentTarget.style.removeProperty('--tilt-x')
+  event.currentTarget.style.removeProperty('--tilt-y')
 }
 
 onMounted(() => {
-  updateScrollProgress()
-  window.addEventListener('scroll', handleScroll, { passive: true })
-  window.addEventListener('resize', handleScroll)
+  clockTimer = window.setInterval(() => (now.value = new Date()), 30000)
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('scroll', handleScroll)
-  window.removeEventListener('resize', handleScroll)
-})
+onBeforeUnmount(() => window.clearInterval(clockTimer))
 </script>
 
 <template>
-  <div class="home-page page-wrap">
-    <div ref="curtainStage" class="curtain-stage" :style="curtainStyle">
-      <section class="hero">
-        <div class="hero-copy">
-          <div class="hero-kicker reveal reveal-1">个人数字花园 · 持续生长中</div>
-          <h1 class="reveal reveal-2">
-            在代码与日常之间，<br />
-            <em>拾起</em>值得留下的片刻。
-          </h1>
-          <div class="hero-bottom reveal reveal-3">
-            <p>
-              这里记录开发、设计与生活。<br />
-              不追逐即时答案，只整理真实的思考过程。
-            </p>
-            <RouterLink class="round-link" to="/articles" aria-label="阅读文章">
-              <span>开始阅读</span>
-              <b>↓</b>
-            </RouterLink>
-          </div>
+  <div class="home-page">
+    <section class="home-hero page-wrap">
+      <div class="hero-copy">
+        <div class="hero-kicker reveal reveal-1">
+          <span aria-hidden="true">●</span>
+          一个正在生长的个人网站
         </div>
-        <figure class="hero-photo reveal reveal-2">
+        <h1 class="reveal reveal-2">
+          你好，<br />
+          这里是<span>拾页。</span>
+        </h1>
+        <p class="hero-intro reveal reveal-3">
+          我在代码、设计与日常之间捡拾片刻。这里没有标准答案，只有持续更新的思考、实验和生活切片。
+        </p>
+        <div class="hero-actions reveal reveal-3">
+          <RouterLink class="primary-link" to="/articles">
+            浏览文章 <span aria-hidden="true">↗</span>
+          </RouterLink>
+          <RouterLink class="text-link" to="/about">关于这个地方 →</RouterLink>
+        </div>
+        <div class="hero-coordinates reveal reveal-3" aria-label="本地时间与网站版本">
+          <span>CN / {{ timeLabel }}</span>
+          <span>VERSION 2.0.26</span>
+        </div>
+      </div>
+
+      <div
+        class="signal-window reveal reveal-2"
+        @pointermove="trackPointer"
+        @pointerleave="resetPointer"
+      >
+        <div class="window-bar">
+          <span>FIELD_NOTE_001.JPG</span>
+          <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        </div>
+        <figure class="workspace-frame">
           <img
             :src="heroImage"
             alt="放着笔记本电脑和显示器的明亮工作台"
@@ -73,52 +81,96 @@ onBeforeUnmount(() => {
             height="1067"
             fetchpriority="high"
           />
-          <figcaption>
-            <span>01 / WORKSPACE</span>
-            <span>日常工作台</span>
-          </figcaption>
+          <div class="scan-line" aria-hidden="true"></div>
+          <figcaption>WORKSPACE / 日常发生的地方</figcaption>
         </figure>
-      </section>
-
-      <div class="curtain-panel">
-        <section class="curtain-intro">
-          <span class="eyebrow">PHILOSOPHY</span>
-          <div class="curtain-intro-copy">
-            <h2>触碰内心<br />留在记忆<br />创造真实</h2>
-            <p>
-              让文字触碰感受，<br />
-              让思考在时间里留下痕迹。
-            </p>
-          </div>
-          <RouterLink to="/about">了解更多 ↗</RouterLink>
-        </section>
-
-        <div class="curtain-inner">
-          <section class="featured-section">
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">SELECTED NOTES</span>
-                <h2>近期拾录</h2>
-              </div>
-              <RouterLink to="/articles">查看全部 <span>→</span></RouterLink>
-            </div>
-            <div class="article-grid">
-              <ArticleCard
-                v-for="(article, index) in featuredArticles"
-                :key="article.slug"
-                :article="article"
-                :large="index === 0"
-              />
-            </div>
-          </section>
-
-          <section class="manifesto">
-            <span class="eyebrow">A SMALL MANIFESTO</span>
-            <blockquote>“记录不是为了证明走了多远，<br />而是为了看清自己如何抵达这里。”</blockquote>
-            <RouterLink to="/about">认识我和这个网站 ↗</RouterLink>
-          </section>
+        <div class="signal-overlay" aria-hidden="true">
+          <span class="signal-orbit orbit-one"></span>
+          <span class="signal-orbit orbit-two"></span>
+          <span class="signal-node node-a"></span>
+          <span class="signal-node node-b"></span>
+          <span class="signal-node node-c"></span>
+          <svg viewBox="0 0 600 520" preserveAspectRatio="none">
+            <path d="M-40 390 C100 190 180 460 310 260 S510 90 650 210" />
+            <path d="M-30 130 C90 280 210 40 350 180 S520 430 640 310" />
+          </svg>
+        </div>
+        <div class="window-note">
+          <b>NOW</b>
+          <span>正在整理关于界面、代码与观察的笔记。</span>
         </div>
       </div>
+    </section>
+
+    <div class="signal-ticker" aria-hidden="true">
+      <div>
+        <span>DESIGNING</span><i>✦</i><span>CODING</span><i>✦</i><span>OBSERVING</span><i>✦</i><span>WRITING</span><i>✦</i>
+        <span>DESIGNING</span><i>✦</i><span>CODING</span><i>✦</i><span>OBSERVING</span><i>✦</i><span>WRITING</span><i>✦</i>
+      </div>
+    </div>
+
+    <div class="home-content page-wrap">
+      <section class="intro-grid">
+        <div class="section-index">
+          <span>01</span>
+          <small>ABOUT THE LAB</small>
+        </div>
+        <div class="intro-copy">
+          <h2>把想法做成<br /><em>可以触摸的东西。</em></h2>
+          <p>
+            拾页是一座小型数字实验室，也是一份公开笔记。它收集开发过程中的判断、设计里的细节，以及那些不该被快速信息流冲走的普通时刻。
+          </p>
+        </div>
+        <RouterLink class="corner-link" to="/about">更多关于我 <span>↗</span></RouterLink>
+      </section>
+
+      <section class="lab-status" aria-label="当前关注方向">
+        <article>
+          <span>01 / BUILD</span>
+          <strong>Vue × Spring</strong>
+          <p>让内容与工程保持清晰边界。</p>
+        </article>
+        <article>
+          <span>02 / STUDY</span>
+          <strong>Interface & Motion</strong>
+          <p>研究克制但有生命力的界面。</p>
+        </article>
+        <article>
+          <span>03 / COLLECT</span>
+          <strong>Daily Fragments</strong>
+          <p>把日常观察变成长期素材。</p>
+        </article>
+      </section>
+
+      <section class="featured-section">
+        <div class="section-heading">
+          <div>
+            <span class="section-index-inline">02 / LATEST NOTES</span>
+            <h2>近期拾录</h2>
+          </div>
+          <RouterLink to="/articles">完整档案 <span>↗</span></RouterLink>
+        </div>
+        <div class="article-grid">
+          <ArticleCard
+            v-for="(article, index) in featuredArticles"
+            :key="article.slug"
+            :article="article"
+            :large="index === 0"
+          />
+        </div>
+      </section>
+
+      <section class="manifesto">
+        <div class="terminal-bar">
+          <span>MANIFESTO.TXT</span>
+          <span>UTF-8 / READ ONLY</span>
+        </div>
+        <blockquote>
+          <span class="prompt">&gt;</span>
+          记录不是为了证明走了多远，<br />而是为了看清自己<span>如何抵达这里。</span>
+        </blockquote>
+        <RouterLink to="/about">认识我和这个网站 ↗</RouterLink>
+      </section>
     </div>
   </div>
 </template>
